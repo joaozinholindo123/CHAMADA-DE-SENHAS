@@ -34,6 +34,18 @@
       animation: pulseCard 0.5s ease-out forwards;
     }
 
+    /* Animação do Texto Rolante (Marquee Banner) */
+    @keyframes marqueeText {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+
+    .animate-marquee {
+      display: inline-block;
+      white-space: nowrap;
+      animation: marqueeText 18s linear infinite;
+    }
+
     /* Personalização da barra de rolagem do histórico */
     .custom-scroll::-webkit-scrollbar {
       width: 6px;
@@ -135,6 +147,15 @@
 
     </section>
   </main>
+
+  <!-- BANNER DE TEXTO ROLANTE (Marquee Ticker) -->
+  <div class="w-full bg-blue-900 text-yellow-300 py-3 px-4 overflow-hidden border-t-2 border-b-2 border-blue-700 shadow-inner flex items-center z-10">
+    <div class="w-full overflow-hidden whitespace-nowrap relative">
+      <div id="textoRolante" class="animate-marquee font-black text-xl md:text-2xl tracking-wide uppercase">
+        BEM-VINDO À BARBEARIA LC DO CORTE! FALE COM O BARBEIRO PARA GERAR A SENHA E AGUARDE NO PAINEL. &nbsp;&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;&nbsp; BEM-VINDO À BARBEARIA LC DO CORTE! FALE COM O BARBEIRO PARA GERAR A SENHA E AGUARDE NO PAINEL.
+      </div>
+    </div>
+  </div>
 
   <!-- PAINEL DE CONTROLE (Painel do Operador) -->
   <footer class="w-full bg-slate-900 text-white p-4 border-t border-slate-800 shadow-lg z-20">
@@ -286,6 +307,22 @@
       }
     }
 
+    // Atualiza o letreiro de texto rolante na parte inferior
+    function atualizarTextoRolante(senha, tipo) {
+      const el = document.getElementById('textoRolante');
+      const tipoTexto = (tipo === 'P') ? 'PREFERENCIAL' : 'NORMAL';
+      
+      const fraseChamada = `📢 ATENÇÃO: SENHA ${tipoTexto} ${senha} - FAVOR DIRIGIR-SE À BANCADA! 📢`;
+      const fraseInstitucional = `BEM-VINDO À BARBEARIA LC DO CORTE! FALE COM O BARBEIRO PARA GERAR A SENHA E AGUARDE NO PAINEL.`;
+      
+      el.innerHTML = `${fraseChamada} &nbsp;&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;&nbsp; ${fraseInstitucional} &nbsp;&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;&nbsp; ${fraseChamada}`;
+
+      // Reinicia a animação CSS para começar rolando da direita imediatamente
+      el.classList.remove('animate-marquee');
+      void el.offsetWidth; // Dispara reflow
+      el.classList.add('animate-marquee');
+    }
+
     // Toca o som sinal.wav, pausa o YouTube e encadeia a voz
     function tocarSinalEVoz(senhaText, tipo) {
       // 1. Pausa o vídeo do YouTube antes do som começar
@@ -293,11 +330,14 @@
 
       const audio = document.getElementById('audioSinal');
       
-      // Animação de destaque na tela
+      // Animação de destaque no card central
       const card = document.getElementById('cardSenhaAtual');
       card.classList.remove('chamada-animada');
       void card.offsetWidth; // Trigger reflow
       card.classList.add('chamada-animada');
+
+      // Atualiza o texto rolante no rodapé
+      atualizarTextoRolante(senhaText, tipo);
 
       let vozDisparada = false;
 
@@ -413,6 +453,7 @@
       chamadaAtual = null;
       historico = [];
       document.getElementById('senhaAtual').innerText = "---";
+      document.getElementById('textoRolante').innerHTML = "BEM-VINDO À BARBEARIA LC DO CORTE! FALE COM O BARBEIRO PARA GERAR A SENHA E AGUARDE NO PAINEL. &nbsp;&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;&nbsp; BEM-VINDO À BARBEARIA LC DO CORTE! FALE COM O BARBEIRO PARA GERAR A SENHA E AGUARDE NO PAINEL.";
       atualizarHistoricoTela();
     }
 
