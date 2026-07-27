@@ -3,625 +3,280 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SGA LC Do Corte</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Font Awesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- ResponsiveVoice para suporte em TV Box e Smart TVs sem TTS nativo -->
-  <script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE_KEY"></script>
-  <!-- API IFrame do YouTube para controlar reprodução, pausa e volume -->
-  <script src="https://www.youtube.com/iframe_api"></script>
-  
+  <title>Painel SGA Barbearia LC do Corte</title>
+
+  <!-- Bibliotecas do Firebase e QRCode -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
-    
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #ffffff;
-      color: #1e293b;
-      overflow: hidden;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #121212; color: #ffffff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-    /* Animação para destacar a nova senha quando chamada */
-    @keyframes pulseCard {
-      0% { transform: scale(0.98); opacity: 0.8; }
-      50% { transform: scale(1.02); opacity: 1; }
-      100% { transform: scale(1); opacity: 1; }
-    }
+    /* Topo Header */
+    header { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background-color: #1e1e1e; border-bottom: 3px solid #d32f2f; }
+    .clock { font-size: 1.8rem; font-weight: bold; color: #ffca28; }
+    .title { font-size: 2rem; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+    .btn-fullscreen { background: #d32f2f; color: white; border: none; padding: 8px 15px; font-weight: bold; cursor: pointer; border-radius: 5px; }
 
-    .chamada-animada {
-      animation: pulseCard 0.5s ease-out forwards;
-    }
+    /* Layout Principal */
+    main { display: flex; flex: 1; padding: 20px; gap: 20px; height: calc(100vh - 140px); }
 
-    /* Animação do Texto Rolante (Marquee Banner) */
-    @keyframes marqueeText {
-      0% { transform: translateX(100%); }
+    /* Lado Esquerdo: Painel de Chamada */
+    .left-panel { flex: 1.2; display: flex; flex-direction: column; gap: 20px; }
+    .ticket-card { background: #1e1e1e; border-radius: 15px; padding: 30px; text-align: center; border: 2px solid #333; box-shadow: 0 8px 16px rgba(0,0,0,0.5); }
+    .ticket-label { font-size: 1.5rem; color: #aaa; text-transform: uppercase; margin-bottom: 10px; }
+    .ticket-number { font-size: 5.5rem; font-weight: bold; color: #00e676; letter-spacing: 3px; }
+    .desk-number { font-size: 2.5rem; color: #ffca28; margin-top: 10px; }
+
+    /* Player do YouTube e QR Code */
+    .video-container { position: relative; background: #000; border-radius: 15px; overflow: hidden; flex: 1; min-height: 200px; }
+    #player { width: 100%; height: 100%; border: none; }
+    .qr-box { position: absolute; top: 10px; right: 10px; background: rgba(255, 255, 255, 0.9); padding: 8px; border-radius: 8px; text-align: center; color: #000; font-size: 0.7rem; font-weight: bold; }
+
+    /* Lado Direito: Histórico e Controles */
+    .right-panel { flex: 0.8; display: flex; flex-direction: column; gap: 20px; }
+    .history-card { background: #1e1e1e; border-radius: 15px; padding: 20px; flex: 1; border: 2px solid #333; }
+    .history-card h3 { border-bottom: 2px solid #d32f2f; padding-bottom: 10px; margin-bottom: 15px; color: #ffca28; }
+    .history-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .history-item { background: #2a2a2a; padding: 12px 20px; border-radius: 8px; display: flex; justify-content: space-between; font-size: 1.3rem; }
+
+    /* Botões de Ação Simulação */
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn-call { padding: 15px; font-size: 1.1rem; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; color: white; }
+    .btn-normal { background: #0288d1; }
+    .btn-pref { background: #ed6c02; }
+
+    /* Letreiro Rolante */
+    footer { background: #d32f2f; color: white; padding: 10px 0; overflow: hidden; white-space: nowrap; }
+    .marquee { display: inline-block; font-size: 1.4rem; font-weight: bold; animation: marquee 20s linear infinite; }
+    .fast-marquee { animation-duration: 8s !important; }
+
+    @keyframes marquee {
+      0% { transform: translateX(100vw); }
       100% { transform: translateX(-100%); }
-    }
-
-    /* Velocidade suave e agradável para a mensagem de boas-vindas */
-    .animate-marquee {
-      display: inline-block;
-      white-space: nowrap;
-      animation: marqueeText 32s linear infinite;
-    }
-
-    /* Velocidade mais rápida para dar destaque ao chamar a senha */
-    .animate-marquee-fast {
-      display: inline-block;
-      white-space: nowrap;
-      animation: marqueeText 16s linear infinite;
-    }
-
-    /* Personalização da barra de rolagem do histórico */
-    .custom-scroll::-webkit-scrollbar {
-      width: 6px;
-    }
-    .custom-scroll::-webkit-scrollbar-track {
-      background: #f1f5f9;
-      border-radius: 4px;
-    }
-    .custom-scroll::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 4px;
     }
   </style>
 </head>
-<body class="h-screen flex flex-col justify-between select-none bg-white">
+<body>
 
-  <!-- Topo: Hora no canto esquerdo, Botão YouTube e Maximizar no canto direito -->
-  <header class="w-full flex justify-between items-center px-6 py-4 border-b border-slate-200 bg-white shadow-sm z-10">
-    <div class="flex items-center space-x-3">
-      <i class="fa-regular fa-clock text-slate-500 text-2xl"></i>
-      <div id="relogio" class="text-2xl font-bold tracking-wider text-slate-700">00:00:00</div>
-    </div>
-
-    <div class="text-xl font-bold tracking-tight text-slate-800 hidden md:block">
-      Painel de Chamadas LC Do Corte
-    </div>
-
-    <div class="flex items-center space-x-3">
-      <!-- Botão para Configurar YouTube -->
-      <button onclick="abrirModalYoutube()" class="flex items-center space-x-2 px-3 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg font-semibold hover:bg-red-100 transition text-sm">
-        <i class="fa-brands fa-youtube text-lg"></i>
-        <span class="hidden sm:inline">Trocar Vídeo/Playlist</span>
-      </button>
-
-      <button onclick="alternarTelaCheia()" id="btnFullscreen" class="flex items-center space-x-2 px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-semibold hover:bg-slate-100 hover:border-slate-400 active:bg-slate-200 transition">
-        <i class="fa-solid fa-expand text-lg" id="iconeFullscreen"></i>
-        <span id="textoFullscreen">Maximizar</span>
-      </button>
-    </div>
+  <header>
+    <div class="clock" id="clock">00:00:00</div>
+    <div class="title">Painel feito por: João HTMLs</div>
+    <button class="btn-fullscreen" onclick="toggleFullScreen()">TELA CHEIA</button>
   </header>
 
-  <!-- Conteúdo Principal: Esquerda (Player YouTube) | Centro/Direita (Senha Atual e Histórico) -->
-  <main class="flex-1 flex flex-col lg:flex-row overflow-hidden bg-slate-50/50">
-    
-    <!-- LADO ESQUERDO: Vídeo / Playlist do YouTube -->
-    <section class="w-full lg:w-1/2 p-4 md:p-6 flex flex-col justify-center items-center border-r border-slate-200">
-      <div class="w-full h-full max-h-[500px] lg:max-h-full bg-black rounded-3xl overflow-hidden shadow-xl border border-slate-200 relative flex items-center justify-center">
-        <!-- iframe com enablejsapi=1 para permitir pausar e retomar via JS -->
-        <iframe 
-          id="playerYoutube"
-          class="w-full h-full absolute inset-0 border-0"
-          src="https://www.youtube-nocookie.com/embed/videoseries?list=PLT486OXsseoc&si=Q12iOBp_azyvCXSg_&enablejsapi=1&autoplay=1&loop=1" 
-          title="YouTube video player" 
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-          referrerpolicy="strict-origin-when-cross-origin"
-          allowfullscreen>
-        </iframe>
+  <main>
+    <!-- Painel de Chamada e Vídeo -->
+    <section class="left-panel">
+      <div class="ticket-card">
+        <div class="ticket-label">Senha Atual</div>
+        <div class="ticket-number" id="currentTicket">---</div>
+        <div class="desk-number" id="currentDesk">Aguardando...</div>
+      </div>
+
+      <div class="video-container">
+        <div id="player"></div>
+        <!-- QR Code para troca de vídeo pelo Celular -->
+        <div class="qr-box">
+          <div id="qrcode"></div>
+          <span>Trocar Vídeo</span>
+        </div>
       </div>
     </section>
 
-    <!-- LADO DIREITO: Senha Atual e Histórico -->
-    <section class="w-full lg:w-1/2 flex flex-col p-4 md:p-6 justify-between gap-6 overflow-y-auto">
-      
-      <!-- Card Senha Atual -->
-      <div class="text-center w-full bg-white p-6 sm:p-8 rounded-3xl shadow-lg border border-slate-100" id="cardSenhaAtual">
-        <span class="inline-block text-slate-400 text-lg font-bold tracking-widest uppercase mb-1">
-          Senha Atual
-        </span>
-        
-        <!-- Exibição da Senha N001 / P001 -->
-        <div id="senhaAtual" class="text-6xl sm:text-7xl md:text-8xl font-black text-blue-600 my-2 tracking-tight leading-none">
-          ---
-        </div>
-
-        <!-- Localização Fixa (Bancada) -->
-        <div class="inline-flex items-center space-x-2 bg-blue-50 text-blue-800 px-5 py-2 rounded-full font-bold text-xl sm:text-2xl mt-2 border border-blue-200/60">
-          <i class="fa-solid fa-scissors"></i>
-          <span id="guicheAtual">Bancada</span>
-        </div>
-      </div>
-
-      <!-- Lista Histórico de Chamadas -->
-      <div class="flex-1 flex flex-col bg-white p-5 rounded-3xl shadow-lg border border-slate-100">
-        <div class="flex items-center justify-between border-b-2 border-blue-600 pb-3 mb-4">
-          <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <i class="fa-solid fa-history text-blue-600"></i>
-            Histórico
-          </h2>
-          <span class="text-xs font-semibold text-slate-400" id="totalChamadas">0 chamadas</span>
-        </div>
-
-        <!-- Lista Rolável do Histórico -->
-        <ul id="listaHistorico" class="flex-1 overflow-y-auto space-y-2.5 pr-1 custom-scroll max-h-[220px] lg:max-h-none">
-          <li class="text-center py-8 text-slate-400 font-medium italic">
-            Nenhuma chamada realizada ainda.
-          </li>
+    <!-- Histórico e Botões -->
+    <section class="right-panel">
+      <div class="history-card">
+        <h3>Últimas Chamadas</h3>
+        <ul class="history-list" id="historyList">
+          <li class="history-item"><span>---</span> <span>---</span></li>
+          <li class="history-item"><span>---</span> <span>---</span></li>
+          <li class="history-item"><span>---</span> <span>---</span></li>
         </ul>
       </div>
 
+      <div class="controls">
+        <button class="btn-call btn-normal" onclick="chamarSenha('N')">Chamar Normal</button>
+        <button class="btn-call btn-pref" onclick="chamarSenha('P')">Chamar Pref.</button>
+      </div>
     </section>
   </main>
 
-  <!-- BANNER DE TEXTO ROLANTE (Marquee Ticker) -->
-  <div class="w-full bg-blue-900 text-yellow-300 py-3 px-4 overflow-hidden border-t-2 border-b-2 border-blue-700 shadow-inner flex items-center z-10">
-    <div class="w-full overflow-hidden whitespace-nowrap relative">
-      <div id="textoRolante" class="animate-marquee font-black text-xl md:text-2xl tracking-wide uppercase">
-        BEM-VINDO À BARBEARIA LC DO CORTE! FALE COM O BARBEIRO PARA GERAR A SENHA E AGUARDE NO PAINEL. &nbsp;&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;&nbsp; BEM-VINDO À BARBEARIA LC DO CORTE! FALE COM O BARBEIRO PARA GERAR A SENHA E AGUARDE NO PAINEL.
-      </div>
-    </div>
-  </div>
-
-  <!-- PAINEL DE CONTROLE (Painel do Operador) -->
-  <footer class="w-full bg-slate-900 text-white p-4 border-t border-slate-800 shadow-lg z-20">
-    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
-      
-      <!-- Informação da Bancada -->
-      <div class="flex items-center space-x-2 text-slate-300 font-semibold px-2">
-        <i class="fa-solid fa-scissors text-blue-400 text-lg"></i>
-        <span>Local: <strong class="text-white">Bancada</strong></span>
-      </div>
-
-      <!-- Botões de Ação para o Operador -->
-      <div class="flex flex-wrap items-center gap-3">
-        <button onclick="chamarProxima('N')" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold px-5 py-3 rounded-xl transition shadow-md">
-          <i class="fa-solid fa-user"></i>
-          Chamar Normal (N)
-        </button>
-
-        <button onclick="chamarProxima('P')" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold px-5 py-3 rounded-xl transition shadow-md">
-          <i class="fa-solid fa-wheelchair"></i>
-          Chamar Preferencial (P)
-        </button>
-
-        <button onclick="repetirChamada()" class="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 active:scale-95 text-white font-semibold px-4 py-3 rounded-xl transition">
-          <i class="fa-solid fa-rotate-right"></i>
-          Repetir
-        </button>
-
-        <button onclick="zerarContadores()" title="Zerar Sequência de Senhas" class="flex items-center gap-2 bg-rose-900/40 hover:bg-rose-800 text-rose-300 border border-rose-700/50 px-3 py-3 rounded-xl transition text-sm">
-          <i class="fa-solid fa-trash-arrow-up"></i>
-        </button>
-      </div>
-
-    </div>
+  <footer>
+    <div class="marquee" id="marqueeText">BEM-VINDO À BARBEARIA LC DO CORTE! RESPEITE A ORDEM DAS SENHAS. TENHA UM EXCELENTE ATENDIMENTO!</div>
   </footer>
 
-  <!-- Modal para Inserir Link ou ID da Playlist do YouTube -->
-  <div id="modalYoutube" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-100 space-y-4">
-      <div class="flex justify-between items-center border-b pb-3">
-        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-          <i class="fa-brands fa-youtube text-red-600"></i>
-          Alterar Vídeo/Playlist
-        </h3>
-        <button onclick="fecharModalYoutube()" class="text-slate-400 hover:text-slate-600">
-          <i class="fa-solid fa-xmark text-xl"></i>
-        </button>
-      </div>
-      
-      <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-1">Link ou ID do Vídeo/Playlist:</label>
-        <input type="text" id="inputYoutube" placeholder="Cole o link ou ID do vídeo aqui..." class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm">
-        <p class="text-xs text-slate-500 mt-1">Cole uma URL de vídeo comum, playlist ou transmissão ao vivo do YouTube.</p>
-      </div>
-
-      <div class="flex justify-end space-x-2 pt-2">
-        <button onclick="fecharModalYoutube()" class="px-4 py-2 border rounded-lg text-slate-600 font-semibold text-sm hover:bg-slate-100">Cancelar</button>
-        <button onclick="carregarNovoYoutube()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg text-sm transition">Salvar e Carregar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Elemento de áudio para carregar o arquivo local sinal.wav -->
-  <audio id="audioSinal" src="sinal.wav" preload="auto"></audio>
+  <!-- API IFrame do YouTube -->
+  <script src="https://www.youtube.com/iframe_api"></script>
 
   <script>
-    /* Estado da Aplicação */
-    let seqNormal = 1;
-    let seqPreferencial = 1;
-    let historico = [];
-    let chamadaAtual = null;
-    let timerLimparSenha = null;
-
-    /* Controle da API do YouTube */
-    let ytPlayer = null;
-    let timerRetomarYoutube = null;
-
-    // Callback automático da API IFrame do YouTube
-    function onYouTubeIframeAPIReady() {
-      try {
-        ytPlayer = new YT.Player('playerYoutube');
-      } catch (e) {
-        console.warn("API do YouTube inicializada.", e);
-      }
-    }
-
-    // Função para Pausar o YouTube (com fallback via postMessage)
-    function pausarYoutube() {
-      clearTimeout(timerRetomarYoutube);
-      try {
-        if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
-          ytPlayer.pauseVideo();
-        }
-      } catch (e) {}
-
-      // Fallback postMessage para iFrames carregados via URL
-      const iframe = document.getElementById('playerYoutube');
-      if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-      }
-
-      // Timer de segurança: se a voz demorar ou falhar, retoma o vídeo em no máximo 8s
-      timerRetomarYoutube = setTimeout(() => {
-        retomarYoutube();
-      }, 8000);
-    }
-
-    // Função para Retomar a reprodução do YouTube
-    function retomarYoutube() {
-      clearTimeout(timerRetomarYoutube);
-      try {
-        if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
-          ytPlayer.playVideo();
-        }
-      } catch (e) {}
-
-      const iframe = document.getElementById('playerYoutube');
-      if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-      }
-    }
-
-    /* Atualizador do Relógio Digital */
-    function atualizarRelogio() {
-      const agora = new Date();
-      const horas = String(agora.getHours()).padStart(2, '0');
-      const minutos = String(agora.getMinutes()).padStart(2, '0');
-      const segundos = String(agora.getSeconds()).padStart(2, '0');
-      document.getElementById('relogio').innerText = `${horas}:${minutos}:${segundos}`;
-    }
-    setInterval(atualizarRelogio, 1000);
-    atualizarRelogio();
-
-    function alternarTelaCheia() {
-      const btnTexto = document.getElementById('textoFullscreen');
-      const btnIcone = document.getElementById('iconeFullscreen');
-
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().then(() => {
-          btnTexto.innerText = "Sair da Tela Cheia";
-          btnIcone.className = "fa-solid fa-compress text-lg";
-        }).catch(err => console.log(err));
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen().then(() => {
-            btnTexto.innerText = "Maximizar";
-            btnIcone.className = "fa-solid fa-expand text-lg";
-          });
-        }
-      }
-    }
-
-    // Atualiza o letreiro de texto rolante na parte inferior
-    function atualizarTextoRolante(senha, tipo) {
-      const el = document.getElementById('textoRolante');
-      const tipoTexto = (tipo === 'P') ? 'PREFERENCIAL' : 'NORMAL';
-      
-      const fraseChamada = `📢 ATENÇÃO: SENHA ${tipoTexto} ${senha} - FAVOR DIRIGIR-SE À BANCADA! 📢`;
-      const fraseInstitucional = `BEM-VINDO À BARBEARIA LC DO CORTE! FALE COM O BARBEIRO PARA GERAR A SENHA E AGUARDE NO PAINEL.`;
-      
-      el.innerHTML = `${fraseChamada} &nbsp;&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;&nbsp; ${fraseInstitucional} &nbsp;&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;&nbsp; ${fraseChamada}`;
-
-      // Reinicia a animação com velocidade acelerada para a chamada de senha
-      el.classList.remove('animate-marquee', 'animate-marquee-fast');
-      void el.offsetWidth; // Dispara reflow
-      el.classList.add('animate-marquee-fast');
-    }
-
-    // Restaura o texto padrão do letreiro (apenas institucional)
-    function restaurarTextoRolantePadrao() {
-      const el = document.getElementById('textoRolante');
-      const fraseInstitucional = `BEM-VINDO À BARBEARIA LC DO CORTE! FALE COM O BARBEIRO PARA GERAR A SENHA E AGUARDE NO PAINEL.`;
-      el.innerHTML = `${fraseInstitucional} &nbsp;&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;&nbsp; ${fraseInstitucional}`;
-
-      // Restaura a velocidade suave de boas-vindas
-      el.classList.remove('animate-marquee', 'animate-marquee-fast');
-      void el.offsetWidth; // Dispara reflow
-      el.classList.add('animate-marquee');
-    }
-
-    // Temporizador de 30 segundos para ocultar/limpar a senha atual
-    function agendarOcultacaoSenhaAtual() {
-      if (timerLimparSenha) {
-        clearTimeout(timerLimparSenha);
-      }
-
-      timerLimparSenha = setTimeout(() => {
-        document.getElementById('senhaAtual').innerText = "---";
-        restaurarTextoRolantePadrao();
-      }, 30000); // 30 segundos = 30000 milissegundos
-    }
-
-    // Toca o som sinal.wav, pausa o YouTube e encadeia a voz
-    function tocarSinalEVoz(senhaText, tipo) {
-      // 1. Pausa o vídeo do YouTube antes do som começar
-      pausarYoutube();
-
-      const audio = document.getElementById('audioSinal');
-      
-      // Animação de destaque no card central
-      const card = document.getElementById('cardSenhaAtual');
-      card.classList.remove('chamada-animada');
-      void card.offsetWidth; // Trigger reflow
-      card.classList.add('chamada-animada');
-
-      // Atualiza o texto rolante no rodapé
-      atualizarTextoRolante(senhaText, tipo);
-
-      let vozDisparada = false;
-
-      const dispararVozUmaVez = () => {
-        if (!vozDisparada) {
-          vozDisparada = true;
-          falarSenha(senhaText, tipo, () => {
-            // Quando a voz terminar de falar por completo, retoma o vídeo
-            retomarYoutube();
-          });
-        }
-      };
-
-      audio.currentTime = 0;
-
-      // Executa o áudio do sinal
-      const promisePlay = audio.play();
-
-      if (promisePlay !== undefined) {
-        promisePlay.then(() => {
-          audio.onended = () => dispararVozUmaVez();
-        }).catch(err => {
-          console.warn("Áudio 'sinal.wav' não tocado. Tentando voz diretamente...", err);
-          dispararVozUmaVez();
-        });
-      } else {
-        setTimeout(dispararVozUmaVez, 1200);
-      }
-    }
-
-    // Pronúncia por voz compatível com TV Box e encadeamento de término
-    function falarSenha(senhaText, tipo, aoFinalizar) {
-      const tipoTexto = (tipo === 'N') ? 'Normal' : 'Preferencial';
-      const senhaFormatada = senhaText.split('').join(' ');
-      const textoParaFalar = `Senha ${tipoTexto}, ${senhaFormatada}, dirigir-se à bancada`;
-
-      let executadoFinalizacao = false;
-      const concluir = () => {
-        if (!executadoFinalizacao) {
-          executadoFinalizacao = true;
-          if (typeof aoFinalizar === 'function') aoFinalizar();
-        }
-      };
-
-      // 1. Tenta usar ResponsiveVoice primeiro
-      if (typeof responsiveVoice !== 'undefined' && responsiveVoice.voiceSupport()) {
-        responsiveVoice.speak(textoParaFalar, "Brazilian Portuguese Female", { 
-          rate: 0.9,
-          onend: concluir,
-          onerror: concluir
-        });
-        return;
-      }
-
-      // 2. Fallback: Síntese de voz nativa do navegador/Android
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        
-        const mensagem = new SpeechSynthesisUtterance(textoParaFalar);
-        mensagem.lang = 'pt-BR';
-        mensagem.rate = 0.88;
-        
-        mensagem.onend = concluir;
-        mensagem.onerror = concluir;
-        
-        window.speechSynthesis.speak(mensagem);
-      } else {
-        // Se nenhum TTS estiver disponível, aguarda tempo estipulado e libera o vídeo
-        setTimeout(concluir, 2500);
-      }
-    }
-
-    // Chamar próxima senha (Normal N ou Preferencial P)
-    function chamarProxima(tipo) {
-      let numero = 0;
-      if (tipo === 'N') {
-        numero = seqNormal++;
-      } else {
-        numero = seqPreferencial++;
-      }
-
-      const numFormatado = String(numero).padStart(3, '0');
-      const senha = `${tipo}${numFormatado}`;
-
-      if (chamadaAtual) {
-        historico.unshift(chamadaAtual);
-        if (historico.length > 15) historico.pop();
-      }
-
-      chamadaAtual = { 
-        senha, 
-        tipo, 
-        hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) 
-      };
-
-      document.getElementById('senhaAtual').innerText = senha;
-
-      atualizarHistoricoTela();
-      tocarSinalEVoz(senha, tipo);
-      agendarOcultacaoSenhaAtual();
-    }
-
-    // Repetir a chamada atual
-    function repetirChamada() {
-      if (chamadaAtual) {
-        document.getElementById('senhaAtual').innerText = chamadaAtual.senha;
-        tocarSinalEVoz(chamadaAtual.senha, chamadaAtual.tipo);
-        agendarOcultacaoSenhaAtual();
-      }
-    }
-
-    // Zerar sequências de senhas
-    function zerarContadores() {
-      if (timerLimparSenha) {
-        clearTimeout(timerLimparSenha);
-      }
-      seqNormal = 1;
-      seqPreferencial = 1;
-      chamadaAtual = null;
-      historico = [];
-      document.getElementById('senhaAtual').innerText = "---";
-      restaurarTextoRolantePadrao();
-      atualizarHistoricoTela();
-    }
-
-    // Atualiza a lista do histórico no lado direito
-    function atualizarHistoricoTela() {
-      const lista = document.getElementById('listaHistorico');
-      const totalSpan = document.getElementById('totalChamadas');
-      lista.innerHTML = '';
-
-      totalSpan.innerText = `${historico.length + (chamadaAtual ? 1 : 0)} chamada(s)`;
-
-      if (historico.length === 0) {
-        lista.innerHTML = `
-          <li class="text-center py-8 text-slate-400 font-medium italic">
-            Nenhuma chamada anterior.
-          </li>
-        `;
-        return;
-      }
-
-      historico.forEach((item) => {
-        const li = document.createElement('li');
-        const isPreferencial = item.tipo === 'P';
-        
-        li.className = "flex items-center justify-between p-3.5 bg-slate-50 hover:bg-slate-100 rounded-2xl border border-slate-200/80 transition";
-        
-        li.innerHTML = `
-          <div class="flex items-center space-x-3">
-            <span class="w-3 h-3 rounded-full ${isPreferencial ? 'bg-emerald-500' : 'bg-blue-500'}"></span>
-            <span class="text-2xl font-bold text-slate-800 tracking-tight">${item.senha}</span>
-          </div>
-          <div class="text-right">
-            <span class="text-[10px] font-semibold uppercase px-2 py-0.5 rounded ${isPreferencial ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">
-              ${isPreferencial ? 'Preferencial' : 'Normal'}
-            </span>
-            <div class="text-xs text-slate-400 font-medium mt-0.5">${item.hora}</div>
-          </div>
-        `;
-        lista.appendChild(li);
-      });
-    }
-
-    /* Gerenciamento do Player do YouTube */
-    function abrirModalYoutube() {
-      document.getElementById('modalYoutube').classList.remove('hidden');
-    }
-
-    function fecharModalYoutube() {
-      document.getElementById('modalYoutube').classList.add('hidden');
-    }
-
-    function carregarNovoYoutube() {
-      const input = document.getElementById('inputYoutube').value.trim();
-      const iframe = document.getElementById('playerYoutube');
-
-      if (!input) {
-        fecharModalYoutube();
-        return;
-      }
-
-      let embedUrl = "";
-      const domain = "https://www.youtube-nocookie.com/embed/";
-
-      if (input.includes('list=')) {
-        const matchPlaylist = input.match(/list=([a-zA-Z0-9_-]+)/);
-        if (matchPlaylist && matchPlaylist[1]) {
-          embedUrl = `${domain}videoseries?list=${matchPlaylist[1]}&enablejsapi=1&autoplay=1&mute=1&loop=1`;
-        }
-      } 
-      else if (input.includes('v=') || input.includes('youtu.be/')) {
-        let videoId = "";
-        if (input.includes('v=')) {
-          videoId = input.split('v=')[1].split('&')[0];
-        } else if (input.includes('youtu.be/')) {
-          videoId = input.split('youtu.be/')[1].split('?')[0];
-        }
-        if (videoId) {
-          embedUrl = `${domain}${videoId}?enablejsapi=1&autoplay=1&mute=1&loop=1&playlist=${videoId}`;
-        }
-      } 
-      else {
-        embedUrl = `${domain}${input}?enablejsapi=1&autoplay=1&mute=1&loop=1`;
-      }
-
-      if (embedUrl) {
-        iframe.src = embedUrl;
-        // Reinicializa o player do YouTube
-        setTimeout(() => {
-          if (window.YT && YT.Player) {
-            ytPlayer = new YT.Player('playerYoutube');
-          }
-        }, 1000);
-      }
-
-      fecharModalYoutube();
-    }
-  </script>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-const firebaseConfig = {
+    // -------------------------------------------------------------
+    // 1. CONFIGURAÇÃO DO FIREBASE (Substitua pelos seus dados!)
+    // -------------------------------------------------------------
+    const firebaseConfig = {
   apiKey: "AIzaSyCrXLLSDwokGfcjx3-KFF6GnrfaFI8MGSw",
   authDomain: "painel-bom-dia.firebaseapp.com",
-  databaseURL: "https://painel-bom-dia-default-rtdb.firebasedatabase.app",
+  databaseURL: "https://painel-bom-dia-default-rtdb.firebaseio.com",
   projectId: "painel-bom-dia",
   storageBucket: "painel-bom-dia.firebasestorage.app",
   messagingSenderId: "694985059965",
   appId: "1:694985059965:web:a2ae22fc1d627dbfc08b14"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
 
-window.salvarPlaylistFirebase = function(url){
-    set(ref(db,"youtube/playlist"),{
-        link:url
+    // URL do seu painel web de controle no celular
+    const URL_CONTROLE_CELULAR = "https://trocarplaylistdopainellc.netlify.app/controle.html";
+
+    // -------------------------------------------------------------
+    // 2. VARIÁVEIS DE ESTADO E SISTEMA DE CHAMADA
+    // -------------------------------------------------------------
+    let seqNormal = 1;
+    let seqPref = 1;
+    let historico = [];
+    let player = null;
+    let isVideoPlaying = false;
+    let timerSenha = null;
+
+    // Relógio Digital
+    setInterval(() => {
+      document.getElementById('clock').innerText = new Date().toLocaleTimeString('pt-BR');
+    }, 1000);
+
+    // -------------------------------------------------------------
+    // 3. YOUTUBE PLAYER & ESCUTA EM TEMPO REAL DO FIREBASE
+    // -------------------------------------------------------------
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('player', {
+        videoId: 'L_LUpnjgPso', // Vídeo inicial padrão
+        playerVars: {
+          'autoplay': 1,
+          'controls': 0,
+          'loop': 1,
+          'playlist': 'L_LUpnjgPso',
+          'origin': window.location.origin
+        },
+        events: {
+          'onStateChange': (event) => {
+            if (event.data == YT.PlayerState.PLAYING) isVideoPlaying = true;
+            if (event.data == YT.PlayerState.PAUSED) isVideoPlaying = false;
+          }
+        }
+      });
+    }
+
+    // Escuta alterações de vídeo enviadas do celular via Firebase
+    database.ref('videoAtual').on('value', (snapshot) => {
+      const videoId = snapshot.val();
+      if (videoId && player && player.loadVideoById) {
+        player.loadVideoById(videoId);
+      }
     });
+
+    // Gerador do QR Code
+    window.addEventListener('load', () => {
+      new QRCode(document.getElementById("qrcode"), {
+        text: URL_CONTROLE_CELULAR,
+        width: 80,
+        height: 80
+      });
+    });
+
+    // -------------------------------------------------------------
+    // 4. LÓGICA DE CHAMADA DE SENHAS E ÁUDIO
+    // -------------------------------------------------------------
+    function chamarSenha(tipo) {
+      let num = tipo === 'N' ? seqNormal++ : seqPref++;
+      let senhaFormatada = tipo + String(num).padStart(3, '0');
+      function chamarSenha(tipo) {
+  let num = tipo === 'N' ? seqNormal++ : seqPref++;
+  let senhaFormatada = tipo + String(num).padStart(3, '0');
+  let bancadaFixa = "Bancada 1"; // <--- BANCADA FIXA AQUI
+
+  // Atualiza Tela
+  document.getElementById('currentTicket').innerText = senhaFormatada;
+  document.getElementById('currentDesk').innerText = bancadaFixa;
+
+  // Atualiza Histórico
+  historico.unshift({ senha: senhaFormatada, bancada: bancadaFixa });
+  if (historico.length > 3) historico.pop();
+  atualizarHistoricoUI();
+
+  // Ajusta Velocidade do Letreiro
+  const marquee = document.getElementById('marqueeText');
+  marquee.classList.add('fast-marquee');
+
+  // Pausa Vídeo durante o anúncio
+  if (player && isVideoPlaying) player.pauseVideo();
+
+  // Executa os áudios
+  tocarSinalEAnunciar(senhaFormatada, bancadaFixa);
+
+  // Timer de 30 segundos para resetar visor
+  clearTimeout(timerSenha);
+  timerSenha = setTimeout(() => {
+    document.getElementById('currentTicket').innerText = '---';
+    document.getElementById('currentDesk').innerText = 'Aguardando...';
+  }, 30000);
 }
 
-onValue(ref(db,"youtube/playlist"),(snap)=>{
-    if(!snap.exists()) return;
+    function atualizarHistoricoUI() {
+      const list = document.getElementById('historyList');
+      list.innerHTML = '';
+      for (let i = 0; i < 3; i++) {
+        let item = historico[i] || { senha: '---', bancada: '---' };
+        list.innerHTML += `<li class="history-item"><span>${item.senha}</span> <span>${item.bancada}</span></li>`;
+      }
+    }
 
-    const link=snap.val().link;
+    // -------------------------------------------------------------
+    // 5. ÁUDIO: SINAL.WAV + WEB SPEECH API
+    // -------------------------------------------------------------
+    function tocarSinalEAnunciar(senha, bancada) {
+      let audio = new Audio('sinal.wav');
 
-    document.getElementById("inputYoutube").value=link;
+      audio.play().then(() => {
+        audio.onended = () => falarTexto(senha, bancada);
+      }).catch(() => {
+        // Fallback caso o arquivo de som falhe ou não exista no diretório
+        falarTexto(senha, bancada);
+      });
+    }
 
-    carregarNovoYoutube();
-});
-</script>
+    function falarTexto(senha, bancada) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // Limpa chamadas anteriores
+
+        // Trata leitura do código (Ex: N zero zero um)
+        let senhaParaVoz = senha.split('').join(' ');
+        let mensagem = new SpeechSynthesisUtterance(`Senha ${senhaParaVoz}, dirigir-se à ${bancada}`);
+        
+        mensagem.lang = 'pt-BR';
+        mensagem.rate = 0.9; // Velocidade da voz
+
+        mensagem.onend = () => {
+          // Retoma letreiro e vídeo
+          document.getElementById('marqueeText').classList.remove('fast-marquee');
+          if (player) player.playVideo();
+        };
+
+        window.speechSynthesis.speak(mensagem);
+      } else {
+        if (player) player.playVideo();
+      }
+    }
+
+    // Modo Tela Cheia para TV Box
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    }
+  </script>
 </body>
 </html>
