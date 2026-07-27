@@ -40,10 +40,18 @@
       100% { transform: translateX(-100%); }
     }
 
+    /* Velocidade suave e agradável para a mensagem de boas-vindas */
     .animate-marquee {
       display: inline-block;
       white-space: nowrap;
-      animation: marqueeText 18s linear infinite;
+      animation: marqueeText 32s linear infinite;
+    }
+
+    /* Velocidade mais rápida para dar destaque ao chamar a senha */
+    .animate-marquee-fast {
+      display: inline-block;
+      white-space: nowrap;
+      animation: marqueeText 16s linear infinite;
     }
 
     /* Personalização da barra de rolagem do histórico */
@@ -70,7 +78,7 @@
     </div>
 
     <div class="text-xl font-bold tracking-tight text-slate-800 hidden md:block">
-      Painel de Atendimento LC Do Corte
+      Painel de Atendimento - Bancada
     </div>
 
     <div class="flex items-center space-x-3">
@@ -97,7 +105,7 @@
         <iframe 
           id="playerYoutube"
           class="w-full h-full absolute inset-0 border-0"
-          src="https://www.youtube-nocookie.com/embed/videoseries?list=PLT486OXsseoc&si=Q12iOBp_azyvCXSg_&enablejsapi=1&autoplay=1&loop=1" 
+          src="https://www.youtube-nocookie.com/embed/videoseries?list=PLT486OXsseoc&si=Q12iOBp_azyvCXSg_&enablejsapi=1&autoplay=1&mute=1&loop=1" 
           title="YouTube video player" 
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
           referrerpolicy="strict-origin-when-cross-origin"
@@ -227,6 +235,7 @@
     let seqPreferencial = 1;
     let historico = [];
     let chamadaAtual = null;
+    let timerLimparSenha = null;
 
     /* Controle da API do YouTube */
     let ytPlayer = null;
@@ -317,10 +326,34 @@
       
       el.innerHTML = `${fraseChamada} &nbsp;&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;&nbsp; ${fraseInstitucional} &nbsp;&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;&nbsp; ${fraseChamada}`;
 
-      // Reinicia a animação CSS para começar rolando da direita imediatamente
-      el.classList.remove('animate-marquee');
+      // Reinicia a animação com velocidade acelerada para a chamada de senha
+      el.classList.remove('animate-marquee', 'animate-marquee-fast');
+      void el.offsetWidth; // Dispara reflow
+      el.classList.add('animate-marquee-fast');
+    }
+
+    // Restaura o texto padrão do letreiro (apenas institucional)
+    function restaurarTextoRolantePadrao() {
+      const el = document.getElementById('textoRolante');
+      const fraseInstitucional = `BEM-VINDO À BARBEARIA LC DO CORTE! FALE COM O BARBEIRO PARA GERAR A SENHA E AGUARDE NO PAINEL.`;
+      el.innerHTML = `${fraseInstitucional} &nbsp;&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;&nbsp; ${fraseInstitucional}`;
+
+      // Restaura a velocidade suave de boas-vindas
+      el.classList.remove('animate-marquee', 'animate-marquee-fast');
       void el.offsetWidth; // Dispara reflow
       el.classList.add('animate-marquee');
+    }
+
+    // Temporizador de 30 segundos para ocultar/limpar a senha atual
+    function agendarOcultacaoSenhaAtual() {
+      if (timerLimparSenha) {
+        clearTimeout(timerLimparSenha);
+      }
+
+      timerLimparSenha = setTimeout(() => {
+        document.getElementById('senhaAtual').innerText = "---";
+        restaurarTextoRolantePadrao();
+      }, 30000); // 30 segundos = 30000 milissegundos
     }
 
     // Toca o som sinal.wav, pausa o YouTube e encadeia a voz
@@ -437,23 +470,29 @@
 
       atualizarHistoricoTela();
       tocarSinalEVoz(senha, tipo);
+      agendarOcultacaoSenhaAtual();
     }
 
     // Repetir a chamada atual
     function repetirChamada() {
       if (chamadaAtual) {
+        document.getElementById('senhaAtual').innerText = chamadaAtual.senha;
         tocarSinalEVoz(chamadaAtual.senha, chamadaAtual.tipo);
+        agendarOcultacaoSenhaAtual();
       }
     }
 
     // Zerar sequências de senhas
     function zerarContadores() {
+      if (timerLimparSenha) {
+        clearTimeout(timerLimparSenha);
+      }
       seqNormal = 1;
       seqPreferencial = 1;
       chamadaAtual = null;
       historico = [];
       document.getElementById('senhaAtual').innerText = "---";
-      document.getElementById('textoRolante').innerHTML = "BEM-VINDO À BARBEARIA LC DO CORTE! FALE COM O BARBEIRO PARA GERAR A SENHA E AGUARDE NO PAINEL. &nbsp;&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;&nbsp; BEM-VINDO À BARBEARIA LC DO CORTE! FALE COM O BARBEIRO PARA GERAR A SENHA E AGUARDE NO PAINEL.";
+      restaurarTextoRolantePadrao();
       atualizarHistoricoTela();
     }
 
