@@ -590,5 +590,38 @@
       fecharModalYoutube();
     }
   </script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCrXLLSDwokGfcjx3-KFF6GnrfaFI8MGSw",
+  authDomain: "painel-bom-dia.firebaseapp.com",
+  databaseURL: "https://painel-bom-dia-default-rtdb.firebasedatabase.app",
+  projectId: "painel-bom-dia",
+  storageBucket: "painel-bom-dia.firebasestorage.app",
+  messagingSenderId: "694985059965",
+  appId: "1:694985059965:web:a2ae22fc1d627dbfc08b14"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+window.salvarPlaylistFirebase = function(url){
+    set(ref(db,"youtube/playlist"),{
+        link:url
+    });
+}
+
+onValue(ref(db,"youtube/playlist"),(snap)=>{
+    if(!snap.exists()) return;
+
+    const link=snap.val().link;
+
+    document.getElementById("inputYoutube").value=link;
+
+    carregarNovoYoutube();
+});
+</script>
 </body>
 </html>
