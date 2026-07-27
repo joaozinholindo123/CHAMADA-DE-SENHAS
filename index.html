@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel SGA Barbearia LC do Corte</title>
+  <title>Painel de Chamadas - Barbearia LC do Corte</title>
 
   <!-- Bibliotecas do Firebase e QRCode -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
@@ -16,9 +16,10 @@
 
     /* Topo Header */
     header { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background-color: #1e1e1e; border-bottom: 3px solid #d32f2f; }
-    .clock { font-size: 1.8rem; font-weight: bold; color: #ffca28; }
+    .clock { font-size: 2rem; font-weight: bold; color: #ffca28; font-family: monospace; }
     .title { font-size: 2rem; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
-    .btn-fullscreen { background: #d32f2f; color: white; border: none; padding: 8px 15px; font-weight: bold; cursor: pointer; border-radius: 5px; }
+    .btn-fullscreen { background: #d32f2f; color: white; border: none; padding: 10px 20px; font-weight: bold; font-size: 1rem; cursor: pointer; border-radius: 5px; z-index: 1000; }
+    .btn-fullscreen:active { background: #b71c1c; }
 
     /* Layout Principal */
     main { display: flex; flex: 1; padding: 20px; gap: 20px; height: calc(100vh - 140px); }
@@ -33,7 +34,7 @@
     /* Player do YouTube e QR Code */
     .video-container { position: relative; background: #000; border-radius: 15px; overflow: hidden; flex: 1; min-height: 200px; }
     #player { width: 100%; height: 100%; border: none; }
-    .qr-box { position: absolute; top: 10px; right: 10px; background: rgba(255, 255, 255, 0.9); padding: 8px; border-radius: 8px; text-align: center; color: #000; font-size: 0.7rem; font-weight: bold; }
+    .qr-box { position: absolute; top: 10px; right: 10px; background: rgba(255, 255, 255, 0.9); padding: 8px; border-radius: 8px; text-align: center; color: #000; font-size: 0.7rem; font-weight: bold; z-index: 10; }
 
     /* Lado Direito: Histórico e Controles */
     .right-panel { flex: 0.8; display: flex; flex-direction: column; gap: 20px; }
@@ -50,8 +51,8 @@
 
     /* Letreiro Rolante */
     footer { background: #d32f2f; color: white; padding: 10px 0; overflow: hidden; white-space: nowrap; }
-    .marquee { display: inline-block; font-size: 1.4rem; font-weight: bold; animation: marquee 20s linear infinite; }
-    .fast-marquee { animation-duration: 8s !important; }
+    .marquee { display: inline-block; font-size: 1.4rem; font-weight: bold; animation: marquee 32s linear infinite; }
+    .fast-marquee { animation-duration: 16s !important; }
 
     @keyframes marquee {
       0% { transform: translateX(100vw); }
@@ -63,8 +64,8 @@
 
   <header>
     <div class="clock" id="clock">00:00:00</div>
-    <div class="title">Painel feito por: João HTMLs</div>
-    <button class="btn-fullscreen" onclick="toggleFullScreen()">TELA CHEIA</button>
+    <div class="title">Barbearia LC do Corte</div>
+    <button class="btn-fullscreen" onclick="toggleFullScreen()">Tela Cheia ⛶</button>
   </header>
 
   <main>
@@ -105,7 +106,7 @@
   </main>
 
   <footer>
-    <div class="marquee" id="marqueeText">BEM-VINDO À BARBEARIA LC DO CORTE!, **PEÇA AO BARBEIRO PARA GERAR A SENHA** E RESPEITE A ORDEM DAS SENHAS. TENHA UM EXCELENTE ATENDIMENTO!</div>
+    <div class="marquee" id="marqueeText">BEM-VINDO À BARBEARIA LC DO CORTE! FALE COM O BARBEIRO PARA GERAR A SENHA E AGUARDE NO PAINEL. ★ </div>
   </footer>
 
   <!-- API IFrame do YouTube -->
@@ -113,26 +114,88 @@
 
   <script>
     // -------------------------------------------------------------
-    // 1. CONFIGURAÇÃO DO FIREBASE (Substitua pelos seus dados!)
+    // 1. RELÓGIO DIGITAL (Forçado para iniciar com garantia)
+    // -------------------------------------------------------------
+    function atualizarRelogio() {
+      const agora = new Date();
+      const horas = String(agora.getHours()).padStart(2, '0');
+      const minutos = String(agora.getMinutes()).padStart(2, '0');
+      const segundos = String(agora.getSeconds()).padStart(2, '0');
+      
+      const elRelogio = document.getElementById('clock');
+      if (elRelogio) {
+        elRelogio.innerText = `${horas}:${minutos}:${segundos}`;
+      }
+    }
+    
+    // Inicia imediatamente e agenda a repetição
+    atualizarRelogio();
+    setInterval(atualizarRelogio, 1000);
+
+    // -------------------------------------------------------------
+    // 2. FUNÇÃO DE TELA CHEIA (Suporte Universal para TV Box / Chrome)
+    // -------------------------------------------------------------
+    function toggleFullScreen() {
+      const doc = document.documentElement;
+      
+      if (!document.fullscreenElement && 
+          !document.mozFullScreenElement && 
+          !document.webkitFullscreenElement && 
+          !document.msFullscreenElement) {
+        
+        // Abre em Tela Cheia
+        if (doc.requestFullscreen) {
+          doc.requestFullscreen().catch(err => alert("Acesse o link direto do site fora de iFrames para usar Tela Cheia."));
+        } else if (doc.webkitRequestFullscreen) {
+          doc.webkitRequestFullscreen();
+        } else if (doc.mozRequestFullScreen) {
+          doc.mozRequestFullScreen();
+        } else if (doc.msRequestFullscreen) {
+          doc.msRequestFullscreen();
+        }
+      } else {
+        // Sai da Tela Cheia
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+          document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 3. CONFIGURAÇÃO DO FIREBASE
     // -------------------------------------------------------------
     const firebaseConfig = {
-  apiKey: "AIzaSyCrXLLSDwokGfcjx3-KFF6GnrfaFI8MGSw",
-  authDomain: "painel-bom-dia.firebaseapp.com",
-  databaseURL: "https://painel-bom-dia-default-rtdb.firebaseio.com",
-  projectId: "painel-bom-dia",
-  storageBucket: "painel-bom-dia.firebasestorage.app",
-  messagingSenderId: "694985059965",
-  appId: "1:694985059965:web:a2ae22fc1d627dbfc08b14"
-};
+      apiKey: "AIzaSyCrXLLSDwokGfcjx3-KFF6GnrfaFI8MGSw",
+      authDomain: "painel-bom-dia.firebaseapp.com",
+      databaseURL: "https://painel-bom-dia-default-rtdb.firebaseio.com",
+      projectId: "painel-bom-dia",
+      storageBucket: "painel-bom-dia.firebasestorage.app",
+      messagingSenderId: "694985059965",
+      appId: "1:694985059965:web:a2ae22fc1d627dbfc08b14"
+    };
 
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+    if (firebaseConfig.apiKey !== "AIzaSyCrXLLSDwokGfcjx3-KFF6GnrfaFI8MGSw") {
+      firebase.initializeApp(firebaseConfig);
+      const database = firebase.database();
 
-    // URL do seu painel web de controle no celular
+      database.ref('videoAtual').on('value', (snapshot) => {
+        const videoId = snapshot.val();
+        if (videoId && player && player.loadVideoById) {
+          player.loadVideoById(videoId);
+        }
+      });
+    }
+
     const URL_CONTROLE_CELULAR = "https://trocarplaylistlc.vercel.app";
 
     // -------------------------------------------------------------
-    // 2. VARIÁVEIS DE ESTADO E SISTEMA DE CHAMADA
+    // 4. VARIÁVEIS DE ESTADO E SISTEMA DE CHAMADA
     // -------------------------------------------------------------
     let seqNormal = 1;
     let seqPref = 1;
@@ -141,17 +204,12 @@
     let isVideoPlaying = false;
     let timerSenha = null;
 
-    // Relógio Digital
-    setInterval(() => {
-      document.getElementById('clock').innerText = new Date().toLocaleTimeString('pt-BR');
-    }, 1000);
-
     // -------------------------------------------------------------
-    // 3. YOUTUBE PLAYER & ESCUTA EM TEMPO REAL DO FIREBASE
+    // 5. YOUTUBE PLAYER
     // -------------------------------------------------------------
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
-        videoId: 'L_LUpnjgPso', // Vídeo inicial padrão
+        videoId: 'L_LUpnjgPso',
         playerVars: {
           'autoplay': 1,
           'controls': 0,
@@ -168,15 +226,6 @@
       });
     }
 
-    // Escuta alterações de vídeo enviadas do celular via Firebase
-    database.ref('videoAtual').on('value', (snapshot) => {
-      const videoId = snapshot.val();
-      if (videoId && player && player.loadVideoById) {
-        player.loadVideoById(videoId);
-      }
-    });
-
-    // Gerador do QR Code
     window.addEventListener('load', () => {
       new QRCode(document.getElementById("qrcode"), {
         text: URL_CONTROLE_CELULAR,
@@ -186,42 +235,36 @@
     });
 
     // -------------------------------------------------------------
-    // 4. LÓGICA DE CHAMADA DE SENHAS E ÁUDIO
+    // 6. LÓGICA DE CHAMADA DE SENHAS (Bancada 1 Fixa)
     // -------------------------------------------------------------
     function chamarSenha(tipo) {
       let num = tipo === 'N' ? seqNormal++ : seqPref++;
       let senhaFormatada = tipo + String(num).padStart(3, '0');
-      function chamarSenha(tipo) {
-  let num = tipo === 'N' ? seqNormal++ : seqPref++;
-  let senhaFormatada = tipo + String(num).padStart(3, '0');
-  let bancadaFixa = "Bancada 1"; // <--- BANCADA FIXA AQUI
+      let bancadaFixa = "Bancada 1";
 
-  // Atualiza Tela
-  document.getElementById('currentTicket').innerText = senhaFormatada;
-  document.getElementById('currentDesk').innerText = bancadaFixa;
+      document.getElementById('currentTicket').innerText = senhaFormatada;
+      document.getElementById('currentDesk').innerText = bancadaFixa;
 
-  // Atualiza Histórico
-  historico.unshift({ senha: senhaFormatada, bancada: bancadaFixa });
-  if (historico.length > 3) historico.pop();
-  atualizarHistoricoUI();
+      historico.unshift({ senha: senhaFormatada, bancada: bancadaFixa });
+      if (historico.length > 3) historico.pop();
+      atualizarHistoricoUI();
 
-  // Ajusta Velocidade do Letreiro
-  const marquee = document.getElementById('marqueeText');
-  marquee.classList.add('fast-marquee');
+      const marquee = document.getElementById('marqueeText');
+      marquee.innerText = `📢 ATENÇÃO: SENHA ${senhaFormatada} - FAVOR DIRIGIR-SE À BANCADA 1! 📢`;
+      marquee.classList.add('fast-marquee');
 
-  // Pausa Vídeo durante o anúncio
-  if (player && isVideoPlaying) player.pauseVideo();
+      if (player && isVideoPlaying) player.pauseVideo();
 
-  // Executa os áudios
-  tocarSinalEAnunciar(senhaFormatada, bancadaFixa);
+      tocarSinalEAnunciar(senhaFormatada, bancadaFixa);
 
-  // Timer de 30 segundos para resetar visor
-  clearTimeout(timerSenha);
-  timerSenha = setTimeout(() => {
-    document.getElementById('currentTicket').innerText = '---';
-    document.getElementById('currentDesk').innerText = 'Aguardando...';
-  }, 30000);
-}
+      clearTimeout(timerSenha);
+      timerSenha = setTimeout(() => {
+        document.getElementById('currentTicket').innerText = '---';
+        document.getElementById('currentDesk').innerText = 'Aguardando...';
+        marquee.innerText = "BEM-VINDO À BARBEARIA LC DO CORTE! FALE COM O BARBEIRO PARA GERAR A SENHA E AGUARDE NO PAINEL. ★ ";
+        marquee.classList.remove('fast-marquee');
+      }, 30000);
+    }
 
     function atualizarHistoricoUI() {
       const list = document.getElementById('historyList');
@@ -232,34 +275,27 @@
       }
     }
 
-    // -------------------------------------------------------------
-    // 5. ÁUDIO: SINAL.WAV + WEB SPEECH API
-    // -------------------------------------------------------------
     function tocarSinalEAnunciar(senha, bancada) {
       let audio = new Audio('sinal.wav');
 
       audio.play().then(() => {
         audio.onended = () => falarTexto(senha, bancada);
       }).catch(() => {
-        // Fallback caso o arquivo de som falhe ou não exista no diretório
         falarTexto(senha, bancada);
       });
     }
 
     function falarTexto(senha, bancada) {
       if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel(); // Limpa chamadas anteriores
+        window.speechSynthesis.cancel();
 
-        // Trata leitura do código (Ex: N zero zero um)
         let senhaParaVoz = senha.split('').join(' ');
         let mensagem = new SpeechSynthesisUtterance(`Senha ${senhaParaVoz}, dirigir-se à ${bancada}`);
         
         mensagem.lang = 'pt-BR';
-        mensagem.rate = 0.9; // Velocidade da voz
+        mensagem.rate = 0.9;
 
         mensagem.onend = () => {
-          // Retoma letreiro e vídeo
-          document.getElementById('marqueeText').classList.remove('fast-marquee');
           if (player) player.playVideo();
         };
 
@@ -268,39 +304,6 @@
         if (player) player.playVideo();
       }
     }
-
-    // Modo Tela Cheia para TV Box
-    function toggleFullScreen() {
-  const doc = document.documentElement;
-
-  if (!document.fullscreenElement && 
-      !document.mozFullScreenElement && 
-      !document.webkitFullscreenElement && 
-      !document.msFullscreenElement) {
-    
-    // Solicita Tela Cheia com compatibilidade para todos os navegadores
-    if (doc.requestFullscreen) {
-      doc.requestFullscreen();
-    } else if (doc.msRequestFullscreen) {
-      doc.msRequestFullscreen();
-    } else if (doc.mozRequestFullScreen) {
-      doc.mozRequestFullScreen();
-    } else if (doc.webkitRequestFullscreen) {
-      doc.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
-    }
-  } else {
-    // Sair da Tela Cheia
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
-    } else if (document.msExitFullscreen) {
-      document.msExitFullscreen();
-    } else if (document.mozCancelFullScreen) {
-      document.mozCancelFullScreen();
-    } else if (document.webkitExitFullscreen) {
-      document.webkitExitFullscreen();
-    }
-  }
-}
   </script>
 </body>
 </html>
