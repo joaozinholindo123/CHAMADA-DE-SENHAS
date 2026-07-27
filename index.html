@@ -271,12 +271,36 @@
 
     // Modo Tela Cheia para TV Box
     function toggleFullScreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      } else {
-        if (document.exitFullscreen) document.exitFullscreen();
-      }
+  const doc = document.documentElement;
+
+  if (!document.fullscreenElement && 
+      !document.mozFullScreenElement && 
+      !document.webkitFullscreenElement && 
+      !document.msFullscreenElement) {
+    
+    // Solicita Tela Cheia com compatibilidade para todos os navegadores
+    if (doc.requestFullscreen) {
+      doc.requestFullscreen();
+    } else if (doc.msRequestFullscreen) {
+      doc.msRequestFullscreen();
+    } else if (doc.mozRequestFullScreen) {
+      doc.mozRequestFullScreen();
+    } else if (doc.webkitRequestFullscreen) {
+      doc.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
     }
+  } else {
+    // Sair da Tela Cheia
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+  }
+}
   </script>
 </body>
 </html>
