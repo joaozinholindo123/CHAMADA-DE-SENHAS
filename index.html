@@ -4,304 +4,475 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel de Chamadas - Barbearia LC do Corte</title>
-
-  <!-- Bibliotecas do Firebase e QRCode -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background-color: #121212; color: #ffffff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    :root {
+      --bg-dark: #121212;
+      --card-bg: #1e1e1e;
+      --accent-gold: #ffb703;
+      --text-white: #ffffff;
+      --text-gray: #b0b0b0;
+      --normal-color: #2196f3;
+      --pref-color: #e91e63;
+    }
 
-    /* Topo Header */
-    header { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background-color: #1e1e1e; border-bottom: 3px solid #d32f2f; }
-    .clock { font-size: 2rem; font-weight: bold; color: #ffca28; font-family: monospace; }
-    .title { font-size: 2rem; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
-    .btn-fullscreen { background: #d32f2f; color: white; border: none; padding: 10px 20px; font-weight: bold; font-size: 1rem; cursor: pointer; border-radius: 5px; z-index: 1000; }
-    .btn-fullscreen:active { background: #b71c1c; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-white);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Cabeçalho */
+    header {
+      height: 60px;
+      background-color: #080808;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      border-bottom: 2px solid var(--accent-gold);
+      z-index: 10;
+    }
+
+    .time-display {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: var(--accent-gold);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .date-display {
+      font-size: 1.1rem;
+      color: var(--text-gray);
+    }
+
+    .btn-header {
+      background: #2a2a2a;
+      color: white;
+      border: 1px solid #444;
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .btn-header:hover {
+      background: var(--accent-gold);
+      color: black;
+    }
+
+    /* Zona Hover para Maximizar */
+    .fullscreen-trigger {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 100px;
+      height: 60px;
+      z-index: 100;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding-right: 10px;
+    }
+
+    .fullscreen-trigger #btnFullscreen {
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .fullscreen-trigger:hover #btnFullscreen {
+      opacity: 1;
+    }
+
+    /* Oculta botão em Tela Cheia */
+    body:fullscreen #btnFullscreen,
+    body:-webkit-full-screen #btnFullscreen {
+      display: none !important;
+    }
 
     /* Layout Principal */
-    main { display: flex; flex: 1; padding: 20px; gap: 20px; height: calc(100vh - 140px); }
+    main {
+      flex: 1;
+      display: flex;
+      height: calc(100vh - 120px);
+    }
 
-    /* Lado Esquerdo: Painel de Chamada */
-    .left-panel { flex: 1.2; display: flex; flex-direction: column; gap: 20px; }
-    .ticket-card { background: #1e1e1e; border-radius: 15px; padding: 30px; text-align: center; border: 2px solid #333; box-shadow: 0 8px 16px rgba(0,0,0,0.5); }
-    .ticket-label { font-size: 1.5rem; color: #aaa; text-transform: uppercase; margin-bottom: 10px; }
-    .ticket-number { font-size: 5.5rem; font-weight: bold; color: #00e676; letter-spacing: 3px; }
-    .desk-number { font-size: 2.5rem; color: #ffca28; margin-top: 10px; }
+    /* Lado Esquerdo: Vídeo */
+    .left-panel {
+      flex: 1.2;
+      background: #000;
+      position: relative;
+    }
 
-    /* Player do YouTube e QR Code */
-    .video-container { position: relative; background: #000; border-radius: 15px; overflow: hidden; flex: 1; min-height: 200px; }
-    #player { width: 100%; height: 100%; border: none; }
-    .qr-box { position: absolute; top: 10px; right: 10px; background: rgba(255, 255, 255, 0.9); padding: 8px; border-radius: 8px; text-align: center; color: #000; font-size: 0.7rem; font-weight: bold; z-index: 10; }
+    .left-panel iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
 
-    /* Lado Direito: Histórico e Controles */
-    .right-panel { flex: 0.8; display: flex; flex-direction: column; gap: 20px; }
-    .history-card { background: #1e1e1e; border-radius: 15px; padding: 20px; flex: 1; border: 2px solid #333; }
-    .history-card h3 { border-bottom: 2px solid #d32f2f; padding-bottom: 10px; margin-bottom: 15px; color: #ffca28; }
-    .history-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-    .history-item { background: #2a2a2a; padding: 12px 20px; border-radius: 8px; display: flex; justify-content: space-between; font-size: 1.3rem; }
+    /* Lado Direito: Senhas */
+    .right-panel {
+      flex: 1;
+      background-color: var(--bg-dark);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      border-left: 1px solid #333;
+    }
 
-    /* Botões de Ação Simulação */
-    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .btn-call { padding: 15px; font-size: 1.1rem; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; color: white; }
-    .btn-normal { background: #0288d1; }
-    .btn-pref { background: #ed6c02; }
+    /* Display Senha Atual */
+    .current-call {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      border: 2px solid #333;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
 
-    /* Letreiro Rolante */
-    footer { background: #d32f2f; color: white; padding: 10px 0; overflow: hidden; white-space: nowrap; }
-    .marquee { display: inline-block; font-size: 1.4rem; font-weight: bold; animation: marquee 32s linear infinite; }
-    .fast-marquee { animation-duration: 16s !important; }
+    .current-call.active {
+      border-color: var(--accent-gold);
+      animation: pulse 1.5s infinite;
+    }
 
-    @keyframes marquee {
-      0% { transform: translateX(100vw); }
-      100% { transform: translateX(-100%); }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(255, 183, 3, 0.4); }
+      70% { box-shadow: 0 0 0 15px rgba(255, 183, 3, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 183, 3, 0); }
+    }
+
+    .current-title {
+      font-size: 1.2rem;
+      color: var(--text-gray);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+    }
+
+    .current-ticket {
+      font-size: 5rem;
+      font-weight: 800;
+      color: var(--accent-gold);
+    }
+
+    .ticket-normal { color: var(--normal-color); }
+    .ticket-pref { color: var(--pref-color); }
+
+    /* Controles de Atendimento (Para os Barbeiros) */
+    .controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-call {
+      flex: 1;
+      padding: 15px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: white;
+      transition: transform 0.1s;
+    }
+
+    .btn-call:active { transform: scale(0.98); }
+    .btn-normal { background-color: var(--normal-color); }
+    .btn-pref { background-color: var(--pref-color); }
+
+    /* Histórico */
+    .history-panel {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 15px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .history-title {
+      font-size: 1rem;
+      color: var(--text-gray);
+      margin-bottom: 10px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 5px;
+    }
+
+    .history-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      background: #282828;
+      padding: 10px 15px;
+      border-radius: 6px;
+      font-size: 1.3rem;
+      font-weight: bold;
+    }
+
+    /* Footer / Letreiro */
+    footer {
+      height: 60px;
+      background-color: #000;
+      border-top: 2px solid var(--accent-gold);
+      overflow: hidden;
+      white-space: nowrap;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .ticker-text {
+      display: inline-block;
+      padding-left: 100%;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--accent-gold);
+      text-transform: uppercase;
+    }
+
+    /* Animações do Letreiro */
+    .speed-slow {
+      animation: ticker 25s linear infinite;
+    }
+
+    .speed-fast {
+      animation: ticker 12s linear infinite;
+      color: #fff;
+    }
+
+    @keyframes ticker {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-100%, 0, 0); }
     }
   </style>
 </head>
 <body>
 
+  <!-- Cabeçalho -->
   <header>
-    <div class="clock" id="clock">00:00:00</div>
-    <div class="title">Barbearia LC do Corte</div>
-    <button class="btn-fullscreen" onclick="toggleFullScreen()">Tela Cheia ⛶</button>
+    <div class="time-display" id="clock">00:00:00</div>
+    <div class="header-right">
+      <div class="date-display" id="date">--/--/----</div>
+      <button class="btn-header" onclick="changePlaylist()">🎵 Playlist</button>
+    </div>
   </header>
 
-  <main>
-    <!-- Painel de Chamada e Vídeo -->
-    <section class="left-panel">
-      <div class="ticket-card">
-        <div class="ticket-label">Senha Atual</div>
-        <div class="ticket-number" id="currentTicket">---</div>
-        <div class="desk-number" id="currentDesk">Aguardando...</div>
-      </div>
+  <!-- Zona Hover de Maximizar (Canto Superior Direito) -->
+  <div class="fullscreen-trigger">
+    <button class="btn-header" id="btnFullscreen" onclick="toggleFullscreen()">🗖 Maximizar</button>
+  </div>
 
-      <div class="video-container">
-        <div id="player"></div>
-        <!-- QR Code para troca de vídeo pelo Celular -->
-        <div class="qr-box">
-          <div id="qrcode"></div>
-          <span>Trocar Vídeo</span>
-        </div>
-      </div>
+  <!-- Layout Conteúdo -->
+  <main>
+    <!-- Playlist YouTube -->
+    <section class="left-panel">
+      <iframe id="ytPlayer" 
+        src="https://www.youtube.com/embed/videoseries?list=PL4fGSI1pDJn6jXS_A_s2P1y0y7iJdM5L6&autoplay=1&mute=0" 
+        allow="autoplay; encrypted-media" allowfullscreen>
+      </iframe>
     </section>
 
-    <!-- Histórico e Botões -->
+    <!-- Painel de Senhas e Controles -->
     <section class="right-panel">
-      <div class="history-card">
-        <h3>Últimas Chamadas</h3>
-        <ul class="history-list" id="historyList">
-          <li class="history-item"><span>---</span> <span>---</span></li>
-          <li class="history-item"><span>---</span> <span>---</span></li>
-          <li class="history-item"><span>---</span> <span>---</span></li>
-        </ul>
+      <!-- Display Principal -->
+      <div class="current-call" id="callCard">
+        <div class="current-title">Senha Atual</div>
+        <div class="current-ticket" id="currentTicket">---</div>
       </div>
 
+      <!-- Botões para Chamada -->
       <div class="controls">
-        <button class="btn-call btn-normal" onclick="chamarSenha('N')">Chamar Normal</button>
-        <button class="btn-call btn-pref" onclick="chamarSenha('P')">Chamar Pref.</button>
+        <button class="btn-call btn-normal" onclick="callTicket('N')">+ Normal</button>
+        <button class="btn-call btn-pref" onclick="callTicket('P')">+ Preferencial</button>
+      </div>
+
+      <!-- Histórico -->
+      <div class="history-panel">
+        <div class="history-title">Últimas Chamadas</div>
+        <ul class="history-list" id="historyList">
+          <!-- Histórico dinâmico -->
+        </ul>
       </div>
     </section>
   </main>
 
+  <!-- Rodapé / Letreiro -->
   <footer>
-    <div class="marquee" id="marqueeText">BEM-VINDO À BARBEARIA LC DO CORTE! FALE COM O BARBEIRO PARA GERAR A SENHA E AGUARDE NO PAINEL. ★ </div>
+    <div class="ticker-text speed-slow" id="tickerText">
+      BEM-VINDO À BARBEARIA LC DO CORTE! PEÇA A SENHA COM O BARBEIRO E AGUARDE A SUA VEZ. OBRIGADO PELA COMPREENSÃO!
+    </div>
   </footer>
 
-  <!-- API IFrame do YouTube -->
-  <script src="https://www.youtube.com/iframe_api"></script>
+  <!-- Áudio Local -->
+  <audio id="dingDong" src="sinal.wav" preload="auto"></audio>
 
   <script>
-    // -------------------------------------------------------------
-    // 1. RELÓGIO DIGITAL (Forçado para iniciar com garantia)
-    // -------------------------------------------------------------
-    function atualizarRelogio() {
-      const agora = new Date();
-      const horas = String(agora.getHours()).padStart(2, '0');
-      const minutos = String(agora.getMinutes()).padStart(2, '0');
-      const segundos = String(agora.getSeconds()).padStart(2, '0');
-      
-      const elRelogio = document.getElementById('clock');
-      if (elRelogio) {
-        elRelogio.innerText = `${horas}:${minutos}:${segundos}`;
-      }
-    }
-    
-    // Inicia imediatamente e agenda a repetição
-    atualizarRelogio();
-    setInterval(atualizarRelogio, 1000);
+    // --- Variáveis de Estado ---
+    let normalSeq = 0;
+    let prefSeq = 0;
+    let hideTimer = null;
 
-    // -------------------------------------------------------------
-    // 2. FUNÇÃO DE TELA CHEIA (Suporte Universal para TV Box / Chrome)
-    // -------------------------------------------------------------
-    function toggleFullScreen() {
-      const doc = document.documentElement;
+    const defaultMsg = "BEM-VINDO À BARBEARIA LC DO CORTE! PEÇA A SENHA COM O BARBEIRO E AGUARDE A SUA VEZ. OBRIGADO PELA COMPREENSÃO!";
+
+    // --- Relógio e Data ---
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent = now.toLocaleTimeString('pt-BR');
       
-      if (!document.fullscreenElement && 
-          !document.mozFullScreenElement && 
-          !document.webkitFullscreenElement && 
-          !document.msFullscreenElement) {
-        
-        // Abre em Tela Cheia
-        if (doc.requestFullscreen) {
-          doc.requestFullscreen().catch(err => alert("Acesse o link direto do site fora de iFrames para usar Tela Cheia."));
-        } else if (doc.webkitRequestFullscreen) {
-          doc.webkitRequestFullscreen();
-        } else if (doc.mozRequestFullScreen) {
-          doc.mozRequestFullScreen();
-        } else if (doc.msRequestFullscreen) {
-          doc.msRequestFullscreen();
-        }
+      const options = { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' };
+      document.getElementById('date').textContent = now.toLocaleDateString('pt-BR', options);
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // --- Sistema de Chamada de Senha ---
+    function callTicket(type) {
+      let ticketCode = "";
+      let typeText = "";
+
+      if (type === 'N') {
+        normalSeq++;
+        ticketCode = 'N' + String(normalSeq).padStart(3, '0');
+        typeText = "NORMAL";
       } else {
-        // Sai da Tela Cheia
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        } else if (document.mozCancelFullScreen) {
-          document.mozCancelFullScreen();
-        } else if (document.msExitFullscreen) {
-          document.msExitFullscreen();
-        }
+        prefSeq++;
+        ticketCode = 'P' + String(prefSeq).padStart(3, '0');
+        typeText = "PREFERENCIAL";
       }
-    }
 
-    // -------------------------------------------------------------
-    // 3. CONFIGURAÇÃO DO FIREBASE
-    // -------------------------------------------------------------
-    const firebaseConfig = {
-      apiKey: "AIzaSyCrXLLSDwokGfcjx3-KFF6GnrfaFI8MGSw",
-      authDomain: "painel-bom-dia.firebaseapp.com",
-      databaseURL: "https://painel-bom-dia-default-rtdb.firebaseio.com",
-      projectId: "painel-bom-dia",
-      storageBucket: "painel-bom-dia.firebasestorage.app",
-      messagingSenderId: "694985059965",
-      appId: "1:694985059965:web:a2ae22fc1d627dbfc08b14"
-    };
+      // 1. Atualiza Display Principal
+      const ticketElem = document.getElementById('currentTicket');
+      const cardElem = document.getElementById('callCard');
+      
+      ticketElem.textContent = ticketCode;
+      ticketElem.className = "current-ticket " + (type === 'N' ? 'ticket-normal' : 'ticket-pref');
+      cardElem.classList.add('active');
 
-    if (firebaseConfig.apiKey !== "AIzaSyCrXLLSDwokGfcjx3-KFF6GnrfaFI8MGSw") {
-      firebase.initializeApp(firebaseConfig);
-      const database = firebase.database();
+      // 2. Toca Áudio "Ding Dong" Local
+      const audio = document.getElementById('dingDong');
+      audio.currentTime = 0;
+      audio.play().catch(e => console.log("Interação prévia do usuário necessária para áudio automáticos."));
 
-      database.ref('videoAtual').on('value', (snapshot) => {
-        const videoId = snapshot.val();
-        if (videoId && player && player.loadVideoById) {
-          player.loadVideoById(videoId);
-        }
-      });
-    }
+      // 3. Síntese de Voz (Falar pausadamente EX: "P 0 0 1")
+      speakTicket(ticketCode);
 
-    const URL_CONTROLE_CELULAR = "https://trocarplaylistlc.vercel.app";
+      // 4. Atualiza Letreiro para MODO CHAMADA
+      updateTicker(`📢📢 ATENÇÃO: SENHA ${typeText} ${ticketCode}, DIRIGIR-SE À BANCADA`, true);
 
-    // -------------------------------------------------------------
-    // 4. VARIÁVEIS DE ESTADO E SISTEMA DE CHAMADA
-    // -------------------------------------------------------------
-    let seqNormal = 1;
-    let seqPref = 1;
-    let historico = [];
-    let player = null;
-    let isVideoPlaying = false;
-    let timerSenha = null;
+      // 5. Adiciona ao Histórico
+      addHistory(ticketCode, typeText);
 
-    // -------------------------------------------------------------
-    // 5. YOUTUBE PLAYER
-    // -------------------------------------------------------------
-    function onYouTubeIframeAPIReady() {
-      player = new YT.Player('player', {
-        videoId: 'L_LUpnjgPso',
-        playerVars: {
-          'autoplay': 1,
-          'controls': 0,
-          'loop': 1,
-          'playlist': 'L_LUpnjgPso',
-          'origin': window.location.origin
-        },
-        events: {
-          'onStateChange': (event) => {
-            if (event.data == YT.PlayerState.PLAYING) isVideoPlaying = true;
-            if (event.data == YT.PlayerState.PAUSED) isVideoPlaying = false;
-          }
-        }
-      });
-    }
-
-    window.addEventListener('load', () => {
-      new QRCode(document.getElementById("qrcode"), {
-        text: URL_CONTROLE_CELULAR,
-        width: 80,
-        height: 80
-      });
-    });
-
-    // -------------------------------------------------------------
-    // 6. LÓGICA DE CHAMADA DE SENHAS (Bancada 1 Fixa)
-    // -------------------------------------------------------------
-    function chamarSenha(tipo) {
-      let num = tipo === 'N' ? seqNormal++ : seqPref++;
-      let senhaFormatada = tipo + String(num).padStart(3, '0');
-      let bancadaFixa = "Bancada 1";
-
-      document.getElementById('currentTicket').innerText = senhaFormatada;
-      document.getElementById('currentDesk').innerText = bancadaFixa;
-
-      historico.unshift({ senha: senhaFormatada, bancada: bancadaFixa });
-      if (historico.length > 3) historico.pop();
-      atualizarHistoricoUI();
-
-      const marquee = document.getElementById('marqueeText');
-      marquee.innerText = `📢 ATENÇÃO: SENHA ${senhaFormatada} - FAVOR DIRIGIR-SE À BANCADA 1! 📢`;
-      marquee.classList.add('fast-marquee');
-
-      if (player && isVideoPlaying) player.pauseVideo();
-
-      tocarSinalEAnunciar(senhaFormatada, bancadaFixa);
-
-      clearTimeout(timerSenha);
-      timerSenha = setTimeout(() => {
-        document.getElementById('currentTicket').innerText = '---';
-        document.getElementById('currentDesk').innerText = 'Aguardando...';
-        marquee.innerText = "BEM-VINDO À BARBEARIA LC DO CORTE! FALE COM O BARBEIRO PARA GERAR A SENHA E AGUARDE NO PAINEL. ★ ";
-        marquee.classList.remove('fast-marquee');
+      // 6. Reset após 30 segundos
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => {
+        ticketElem.textContent = "---";
+        ticketElem.className = "current-ticket";
+        cardElem.classList.remove('active');
+        updateTicker(defaultMsg, false);
       }, 30000);
     }
 
-    function atualizarHistoricoUI() {
-      const list = document.getElementById('historyList');
-      list.innerHTML = '';
-      for (let i = 0; i < 3; i++) {
-        let item = historico[i] || { senha: '---', bancada: '---' };
-        list.innerHTML += `<li class="history-item"><span>${item.senha}</span> <span>${item.bancada}</span></li>`;
+    // --- Falar a Senha Lentamente ---
+    function speakTicket(code) {
+      if ('speechSynthesis' in window) {
+        // Separa letra e números para forçar pausa. Ex: "P 0 0 1"
+        const spacedCode = code.split('').join(' ');
+        const message = new SpeechSynthesisUtterance(`Senha, ${spacedCode}`);
+        
+        message.lang = 'pt-BR';
+        message.rate = 0.7; // Fala pausada/lenta
+        
+        // Aguarda 1s para o som do ding dong tocar antes da voz
+        setTimeout(() => {
+          window.speechSynthesis.speak(message);
+        }, 1200);
       }
     }
 
-    function tocarSinalEAnunciar(senha, bancada) {
-      let audio = new Audio('sinal.wav');
-
-      audio.play().then(() => {
-        audio.onended = () => falarTexto(senha, bancada);
-      }).catch(() => {
-        falarTexto(senha, bancada);
-      });
+    // --- Atualizar Letreiro Dinâmico ---
+    function updateTicker(text, isFast) {
+      const ticker = document.getElementById('tickerText');
+      
+      // Reinicia animação CSS
+      ticker.style.animation = 'none';
+      ticker.offsetHeight; /* hack para forçar re-flow */
+      
+      ticker.textContent = text;
+      ticker.className = 'ticker-text ' + (isFast ? 'speed-fast' : 'speed-slow');
     }
 
-    function falarTexto(senha, bancada) {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
+    // --- Histórico de Atendimentos ---
+    function addHistory(code, type) {
+      const historyList = document.getElementById('historyList');
+      const li = document.createElement('li');
+      li.className = 'history-item';
+      
+      const time = new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+      
+      li.innerHTML = `<span>${code} <small>(${type})</small></span> <span style="color:#888; font-size: 0.9rem">${time}</span>`;
+      
+      historyList.insertBefore(li, historyList.firstChild);
 
-        let senhaParaVoz = senha.split('').join(' ');
-        let mensagem = new SpeechSynthesisUtterance(`Senha ${senhaParaVoz}, dirigir-se à ${bancada}`);
-        
-        mensagem.lang = 'pt-BR';
-        mensagem.rate = 0.9;
+      // Mantém no máximo 5 itens no histórico
+      if (historyList.children.length > 5) {
+        historyList.removeChild(historyList.lastChild);
+      }
+    }
 
-        mensagem.onend = () => {
-          if (player) player.playVideo();
-        };
+    // --- Mudar Playlist YouTube ---
+    function changePlaylist() {
+      const newUrl = prompt("Cole o ID da Playlist ou o Link do Vídeo/Playlist do YouTube:");
+      if (newUrl) {
+        let embedUrl = "";
+        if (newUrl.includes("list=")) {
+          const listId = newUrl.split("list=")[1].split("&")[0];
+          embedUrl = `https://www.youtube.com/embed/videoseries?list=${listId}&autoplay=1`;
+        } else if (newUrl.includes("v=")) {
+          const videoId = newUrl.split("v=")[1].split("&")[0];
+          embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+        } else {
+          embedUrl = `https://www.youtube.com/embed/${newUrl}?autoplay=1`;
+        }
+        document.getElementById('ytPlayer').src = embedUrl;
+      }
+    }
 
-        window.speechSynthesis.speak(mensagem);
+    // --- Tela Cheia (Fullscreen) ---
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          alert(`Erro ao tentar entrar em tela cheia: ${err.message}`);
+        });
       } else {
-        if (player) player.playVideo();
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
       }
     }
   </script>
