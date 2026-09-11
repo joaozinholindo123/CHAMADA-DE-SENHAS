@@ -177,7 +177,7 @@
     .ticket-normal { color: var(--normal-color); }
     .ticket-pref { color: var(--pref-color); }
 
-    /* Controles de Atendimento (Para os Barbeiros) */
+    /* Controles de Atendimento */
     .controls {
       display: flex;
       gap: 10px;
@@ -290,12 +290,9 @@
 
   <!-- Layout Conteúdo -->
   <main>
-    <!-- Playlist YouTube -->
+    <!-- Playlist YouTube (Div para API do YouTube) -->
     <section class="left-panel">
-      <iframe id="ytPlayer" 
-        src="https://www.youtube-nocookie.com/embed?listType=playlist&list=PLTm_jX7WhHi8&v=QDia3e12czc&autoplay=1&controls=1&modestbranding=1&playsinline=1&fs=0&loop=1&playlist=PLTm_jX7WhHi8" 
-        allow="autoplay; encrypted-media" allowfullscreen>
-      </iframe>
+      <div id="ytPlayer"></div>
     </section>
 
     <!-- Painel de Senhas e Controles -->
@@ -332,13 +329,33 @@
   <!-- Áudio Local -->
   <audio id="dingDong" src="sinal.wav" preload="auto"></audio>
 
+  <!-- Carrega a API de Iframe do YouTube -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+
   <script>
-    // --- Variáveis de Estado ---
+    // --- Variáveis de Estado e Player ---
+    let player;
     let normalSeq = 0;
     let prefSeq = 0;
     let hideTimer = null;
 
     const defaultMsg = "BEM-VINDO À BARBEARIA LC DO CORTE! PEÇA A SENHA COM O BARBEIRO E AGUARDE A SUA VEZ. OBRIGADO PELA COMPREENSÃO!";
+
+    // Inicialização da API do YouTube
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('ytPlayer', {
+        playerVars: {
+          'listType': 'playlist',
+          'list': 'PLTm_jX7WhHi8',
+          'autoplay': 1,
+          'controls': 1,
+          'modestbranding': 1,
+          'playsinline': 1,
+          'fs': 0,
+          'loop': 1
+        }
+      });
+    }
 
     // --- Relógio e Data ---
     function updateClock() {
@@ -374,21 +391,26 @@
       ticketElem.className = "current-ticket " + (type === 'N' ? 'ticket-normal' : 'ticket-pref');
       cardElem.classList.add('active');
 
-      // 2. Toca Áudio "Ding Dong" Local
+      // 2. PAUSA O VÍDEO DO YOUTUBE
+      if (player && typeof player.pauseVideo === 'function') {
+        player.pauseVideo();
+      }
+
+      // 3. Toca Áudio "Ding Dong" Local
       const audio = document.getElementById('dingDong');
       audio.currentTime = 0;
-      audio.play().catch(e => console.log("Interação prévia do usuário necessária para áudio automáticos."));
+      audio.play().catch(e => console.log("Interação prévia do usuário necessária para áudio automático."));
 
-      // 3. Síntese de Voz (Falar pausadamente EX: "P 0 0 1")
+      // 4. Síntese de Voz (Falar pausadamente EX: "P 0 0 1")
       speakTicket(ticketCode);
 
-      // 4. Atualiza Letreiro para MODO CHAMADA
+      // 5. Atualiza Letreiro para MODO CHAMADA
       updateTicker(`📢📢 ATENÇÃO: SENHA ${typeText} ${ticketCode}, DIRIGIR-SE À BANCADA`, true);
 
-      // 5. Adiciona ao Histórico
+      // 6. Adiciona ao Histórico
       addHistory(ticketCode, typeText);
 
-      // 6. Reset após 30 segundos
+      // 7. Reset após 30 segundos
       clearTimeout(hideTimer);
       hideTimer = setTimeout(() => {
         ticketElem.textContent = "---";
@@ -398,20 +420,43 @@
       }, 30000);
     }
 
-    // --- Falar a Senha Lentamente ---
+    // --- Falar a Senha e Retomar o Vídeo ao Final ---
     function speakTicket(code) {
       if ('speechSynthesis' in window) {
-        // Separa letra e números para forçar pausa. Ex: "P 0 0 1"
+        // Cancela qualquer fala anterior em andamento
+        window.speechSynthesis.cancel();
+
         const spacedCode = code.split('').join(' ');
         const message = new SpeechSynthesisUtterance(`Senha, ${spacedCode}`);
         
         message.lang = 'pt-BR';
         message.rate = 0.7; // Fala pausada/lenta
+
+        // Evento disparado quando a voz TERMINA de falar
+        message.onend = function() {
+          if (player && typeof player.playVideo === 'function') {
+            player.playVideo(); // Retoma o vídeo automaticamente
+          }
+        };
+
+        // Evento de erro (caso haja falha, retoma o vídeo para não travar travado)
+        message.onerror = function() {
+          if (player && typeof player.playVideo === 'function') {
+            player.playVideo();
+          }
+        };
         
-        // Aguarda 1s para o som do ding dong tocar antes da voz
+        // Aguarda 1s para o som do ding dong tocar antes da voz começar
         setTimeout(() => {
           window.speechSynthesis.speak(message);
         }, 1200);
+      } else {
+        // Caso o navegador não suporte síntese de voz, despausa o vídeo após 3 segundos
+        setTimeout(() => {
+          if (player && typeof player.playVideo === 'function') {
+            player.playVideo();
+          }
+        }, 3000);
       }
     }
 
@@ -419,7 +464,6 @@
     function updateTicker(text, isFast) {
       const ticker = document.getElementById('tickerText');
       
-      // Reinicia animação CSS
       ticker.style.animation = 'none';
       ticker.offsetHeight; /* hack para forçar re-flow */
       
@@ -439,27 +483,24 @@
       
       historyList.insertBefore(li, historyList.firstChild);
 
-      // Mantém no máximo 5 itens no histórico
       if (historyList.children.length > 5) {
         historyList.removeChild(historyList.lastChild);
       }
     }
 
-    // --- Mudar Playlist YouTube ---
+    // --- Mudar Playlist/Vídeo no YouTube ---
     function changePlaylist() {
       const newUrl = prompt("Cole o ID da Playlist ou o Link do Vídeo/Playlist do YouTube:");
-      if (newUrl) {
-        let embedUrl = "";
+      if (newUrl && player) {
         if (newUrl.includes("list=")) {
           const listId = newUrl.split("list=")[1].split("&")[0];
-          embedUrl = `https://www.youtube.com/embed/videoseries?list=${listId}&autoplay=1`;
+          player.loadPlaylist({ list: listId, listType: 'playlist' });
         } else if (newUrl.includes("v=")) {
           const videoId = newUrl.split("v=")[1].split("&")[0];
-          embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+          player.loadVideoById(videoId);
         } else {
-          embedUrl = `https://www.youtube.com/embed/${newUrl}?autoplay=1`;
+          player.loadVideoById(newUrl);
         }
-        document.getElementById('ytPlayer').src = embedUrl;
       }
     }
 
